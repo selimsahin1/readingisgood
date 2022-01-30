@@ -1,12 +1,12 @@
 package com.selimsahin.readingisgood.payload;
 
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 public class LoginRequest {
-    @NotBlank
+    @NotNull(message = "asdasdasd")
     private String username;
 
-    @NotBlank
+    @NotNull(message = "sadasdasd")
     private String password;
 
     public String getUsername() {

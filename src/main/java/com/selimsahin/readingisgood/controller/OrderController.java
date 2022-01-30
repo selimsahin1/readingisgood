@@ -1,26 +1,28 @@
 package com.selimsahin.readingisgood.controller;
 
-import com.selimsahin.readingisgood.database.entity.Book;
-import com.selimsahin.readingisgood.database.entity.Order;
-import com.selimsahin.readingisgood.database.entity.OrderedBook;
-import com.selimsahin.readingisgood.database.entity.User;
+import com.selimsahin.readingisgood.database.entity.Orders;
 import com.selimsahin.readingisgood.database.repository.BookRepository;
 import com.selimsahin.readingisgood.database.repository.OrderRepository;
 import com.selimsahin.readingisgood.database.repository.OrderedBookRepository;
 import com.selimsahin.readingisgood.manager.UserManager;
+import com.selimsahin.readingisgood.payload.ApiResponse;
 import com.selimsahin.readingisgood.request.CreateOrderRequest;
+import com.selimsahin.readingisgood.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/order")
 public class OrderController {
+
+    private static Logger logger = Logger.getLogger((BookController.class).getName());
 
     @Autowired
     OrderRepository orderRepository;
@@ -31,42 +33,35 @@ public class OrderController {
     @Autowired
     UserManager userManager;
 
+    @Autowired
+    OrderService orderService;
+
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/createOrder")
-    public String createOrder(CreateOrderRequest createOrderRequest) {
-        User user = userManager.getUserFromSecurityContext();
+    public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest createOrderRequest) {
+        Orders orders = orderService.saveOrders();
+        orderService.saveOrderedBook(createOrderRequest, orders);
 
-        Date date = new Date();
-        BigDecimal totalPrice = BigDecimal.valueOf(0.0);
-        for (int i = 0; i <= createOrderRequest.getBookName().size(); i++) {
-            OrderedBook orderedBook = new OrderedBook();
-            orderedBook.setBookName(createOrderRequest.getBookName().get(i));
-            orderedBook.setAmount(createOrderRequest.getQuantity().get(i));
-
-            Book book = bookRepository.getByName(orderedBook.getBookName());
-            book.setStock(book.getStock() - createOrderRequest.getQuantity().get(i));
-
-            totalPrice = totalPrice.add(calculateCost(createOrderRequest.getQuantity().get(i), book.getPrice()));
-            orderedBookRepository.save(orderedBook);
-
-            bookRepository.save(book);
-        }
-
-        Order order = new Order();
-        order.setUserId(user.getId());
-        order.setDate(date);
-        order.setTotalPrice(totalPrice);
-        orderRepository.save(order);
-
-        return "Order created";
+        return ResponseEntity.accepted().body(new ApiResponse(true, "Order created successfully."));
     }
 
-    public BigDecimal calculateCost(int itemQuantity, BigDecimal itemPrice) {
-        BigDecimal totalCost = BigDecimal.ZERO;
-        BigDecimal itemCost = itemPrice.multiply(BigDecimal.valueOf(itemQuantity));
-        totalCost = totalCost.add(itemCost);
-        return totalCost;
+//    public BigDecimal calculateCost(int itemQuantity, BigDecimal itemPrice) {
+//        BigDecimal totalCost = BigDecimal.ZERO;
+//        BigDecimal itemCost = itemPrice.multiply(BigDecimal.valueOf(itemQuantity));
+//        totalCost = totalCost.add(itemCost);
+//        return totalCost;
+//    }
+
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/queryOrder")
+    public Orders queryOrder(@RequestParam("orderId") Long id) {
+        return orderService.queryOrderService(id);
     }
 
-    public Order
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/queryOrderByDate")
+    public List<Orders> queryOrderByDate(@RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") Date from,
+                                         @RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") Date to) {
+        return orderService.queryOrderByDateService(from, to);
+    }
 }

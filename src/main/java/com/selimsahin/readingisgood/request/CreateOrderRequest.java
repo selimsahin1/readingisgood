@@ -1,26 +1,16 @@
 package com.selimsahin.readingisgood.request;
 
+import lombok.Data;
+
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
+@Data
 public class CreateOrderRequest {
+    @NotNull
     List<String> bookName;
+    @Min(1)
     @NotNull
     List<Integer> quantity;
-
-    public List<String> getBookName() {
-        return bookName;
-    }
-
-    public void setBookName(List<String> bookName) {
-        this.bookName = bookName;
-    }
-
-    public List<Integer> getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(List<Integer> quantity) {
-        this.quantity = quantity;
-    }
 }
